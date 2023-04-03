@@ -1,0 +1,33 @@
+{
+  "name": "privacy_bridge",
+  "version": "1.0.0",
+  "description": "",
+  "main": "truffle-config.js",
+  "directories": {
+    "test": "test"
+  },
+  "scripts": {
+    "migrate:origin": "npx truffle migrate --to 2 --network origin",
+    "migrate:destination": "npx truffle migrate --f 3 --network destination",
+    "migrate": "npm run migrate:origin && npm run migrate:destination"
+  },
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "@openzeppelin/contracts": "3.4.1",
+    "@truffle/hdwallet-provider": "^2.1.7",
+    "bn-chai": "^1.0.1",
+    "chai": "^4.3.7",
+    "chai-as-promised": "^7.1.1",
+    "circomlib": "github:tornadocash/circomlib#c372f14d324d57339c88451834bf2824e73bbdbc",
+    "commander": "^10.0.0",
+    "dotenv": "^16.0.3",
+    "fixed-merkle-tree": "0.6.1",
+    "snarkjs-original": "npm:snarkjs@^0.6.4",
+    "snarkjs-tornado": "github:tornadocash/snarkjs#869181cfaf7526fe8972073d31655493a04326d5",
+    "truffle": "^5.7.8",
+    "web3": "^1.8.2",
+    "web3-utils": "^1.8.2",
+    "websnark": "github:tornadocash/websnark#4c0af6a8b65aabea3c09f377f63c44e7a58afa6d"
+  }
+}

@@ -1,0 +1,4 @@
+Choose contracts to deploy:
+truffle migrate --f 2 
+truffle migrate --to 2
+
