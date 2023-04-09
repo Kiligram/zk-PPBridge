@@ -1,4 +1,5 @@
 // SPDX-License-Identifier: MIT
+// Contract is based on https://github.com/tornadocash/tornado-core/blob/master/contracts/Tornado.sol
 pragma solidity ^0.7.0;
 
 import "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
@@ -49,8 +50,8 @@ contract OriginWrappedETH is MerkleTree, ReentrancyGuard {
         emit Deposit(_commitment, insertedIndex, newRoot, block.timestamp);
     }
 
-    // rename to unlock
-    function withdraw(address recepient, uint256 amount) external onlyBridge nonReentrant returns (bool) {
+
+    function releaseFunds(address recepient, uint256 amount) external onlyBridge nonReentrant returns (bool) {
         (bool success, ) = recepient.call{ value: amount }("");
         return success;
     }

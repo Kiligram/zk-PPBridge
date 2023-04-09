@@ -1,3 +1,6 @@
+// Taken from https://github.com/tornadocash/tornado-core/blob/master/circuits/withdraw.circom
+// Upgraded to the latest circom version (2.1.4)
+
 pragma circom 2.1.4;
 include "./auxiliary/bitify.circom";
 include "./auxiliary/pedersen.circom";

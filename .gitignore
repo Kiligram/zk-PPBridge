@@ -1,5 +1,6 @@
-build/
+./build/
 node_modules/
 src/cli_original.js
 src/minimal-demo.js
 .vscode/
+./HELP.txt

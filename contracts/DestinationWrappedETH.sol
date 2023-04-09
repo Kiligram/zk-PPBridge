@@ -1,9 +1,10 @@
 // SPDX-License-Identifier: MIT
+// Contract is a conjunction of several Tornado Cash contracts available on https://github.com/tornadocash/tornado-core/tree/master/contracts
+// functions reclaim and submitRoot are written by myself. 
 pragma solidity ^0.7.0;
 
 import "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 import {ERC20} from "@openzeppelin/contracts/token/ERC20/ERC20.sol";
-// import {ERC20Burnable} from "@openzeppelin/contracts/token/ERC20/ERC20Burnable.sol";
 
 interface IVerifier {
   function verifyProof(bytes memory _proof, uint256[6] memory _input) external returns (bool);
@@ -57,7 +58,6 @@ contract DestinationWrappedETH is ERC20, ReentrancyGuard {
         roots[newRootIndex] = root;
     }
 
-    // rename to reclaim
     function reclaim(address recipient, uint256 amount) external nonReentrant {
         _burn(msg.sender, amount);
         emit Reclaim(recipient, amount);

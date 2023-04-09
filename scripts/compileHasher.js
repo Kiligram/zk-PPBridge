@@ -4,8 +4,7 @@ const path = require('path')
 const fs = require('fs')
 const genContract = require('./mimcsponge_hasher/mimcsponge_gencontract.js')
 
-// where Truffle will expect to find the results of the external compiler
-// command
+// path where Truffle will expect to find the results of the external compiler
 const outputPath = path.join(__dirname, '..', 'build', 'Hasher.json')
 
 if (!fs.existsSync(path.join(__dirname, '..', 'build'))){

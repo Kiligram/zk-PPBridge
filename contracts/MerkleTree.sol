@@ -1,3 +1,6 @@
+// Contract is based on https://github.com/tornadocash/tornado-core/blob/master/contracts/MerkleTreeWithHistory.sol
+// Removed unneeded parts, left tree creation logic only
+
 // https://tornado.cash
 /*
  * d888888P                                           dP              a88888b.                   dP
@@ -10,6 +13,7 @@
  */
 
 // SPDX-License-Identifier: MIT
+
 pragma solidity ^0.7.0;
 
 interface IHasher {
@@ -29,8 +33,6 @@ contract MerkleTree {
     // filledSubtrees and roots could be bytes32[size], but using mappings makes it cheaper because
     // it removes index range check on every interaction
     mapping(uint256 => bytes32) public filledSubtrees;
-    // bytes32 public root;
-    // uint32 public constant ROOT_HISTORY_SIZE = 30;
     uint32 public nextIndex = 0;
 
     constructor(uint32 _levels, IHasher _hasher) {
@@ -38,13 +40,6 @@ contract MerkleTree {
       require(_levels < 32, "_levels should be less than 32");
       levels = _levels;
       hasher = _hasher;
-
-      // // this is not needed probably
-      // for (uint32 i = 0; i < _levels; i++) {
-      //   filledSubtrees[i] = zeros(i);
-      // }
-
-      // root = zeros(_levels - 1);
     }
 
     /**
@@ -86,7 +81,6 @@ contract MerkleTree {
         currentIndex /= 2;
       }
 
-      // root = currentLevelHash;
       nextIndex = _nextIndex + 1;
       return (_nextIndex, currentLevelHash);
     }

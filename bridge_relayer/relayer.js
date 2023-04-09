@@ -27,13 +27,13 @@ const handleOriginDepositEvent = async (event) => {
 
 }
 
-const handleDestinationWithdrawEvent = async (event) => {
+const handleDestinationReclaimEvent = async (event) => {
     const recipient = event.returnValues.recipient
     const amount = event.returnValues.amount
 
     console.log(`New withdraw event :>> to: ${recipient}, amount: ${amount}`)
 
-    const trx = origin_contract.methods.withdraw(recipient, amount)
+    const trx = origin_contract.methods.releaseFunds(recipient, amount)
 
     const gas = await trx.estimateGas({ from: bridge_address })
     console.log('estimated gas :>> ', gas)
@@ -93,13 +93,13 @@ const main = async () => {
 
     destination_contract.events.Reclaim()
         .on('data', async (event) => {
-            await handleDestinationWithdrawEvent(event)
+            await handleDestinationReclaimEvent(event)
         })
         .on('error', (err) => {
             console.error('Error: ', err)
         })
 
-    console.log(`Waiting for withdraw events in destination network`)
+    console.log(`Waiting for reclaim events in destination network`)
 }
 
 main()
