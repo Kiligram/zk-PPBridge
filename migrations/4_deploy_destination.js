@@ -7,12 +7,12 @@ module.exports = function (deployer) {
   return deployer.then(async () => {
     const verifier = await Verifier.deployed()
     const { ETH_AMOUNT, BRIDGE_ADDRESS } = process.env
-    const originWETH = await deployer.deploy(
+    
+    await deployer.deploy(
       DestinationWrappedETH,
       BRIDGE_ADDRESS, 
       verifier.address,
       ETH_AMOUNT
     )
-    // console.log("Destination smart contract address: ", originWETH.address)
   })
 }

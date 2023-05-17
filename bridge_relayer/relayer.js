@@ -16,15 +16,16 @@ const handleOriginDepositEvent = async (event) => {
     const trx = destination_contract.methods.submitRoot(root)
 
     const gas = await trx.estimateGas({ from: bridge_address })
-    console.log('estimated gas :>> ', gas)
+    console.log('Estimated gas :>> ', gas)
 
-    trx.send({ from: bridge_address, gas: Math.floor(gas * 1.2) })
-    .on('transactionHash', function (txHash) {
-        console.log(`The transaction hash is ${txHash}`)
-    }).on('error', function (e) {
-        console.error('on transactionHash error', e.message)
-    })
+    await trx.send({ from: bridge_address, gas: Math.floor(gas * 1.05) })
+        .on('transactionHash', function (txHash) {
+            console.log(`The transaction hash is ${txHash}`)
+        }).on('error', function (e) {
+            console.error('on transactionHash error', e.message)
+        })
 
+    console.log('-------------------------------------------------')
 }
 
 const handleDestinationReclaimEvent = async (event) => {
@@ -36,16 +37,19 @@ const handleDestinationReclaimEvent = async (event) => {
     const trx = origin_contract.methods.releaseFunds(recipient, amount)
 
     const gas = await trx.estimateGas({ from: bridge_address })
-    console.log('estimated gas :>> ', gas)
+    console.log('Estimated gas :>> ', gas)
 
-    trx.send({ from: bridge_address, gas: Math.floor(gas * 1.2) })
-    .on('transactionHash', function (txHash) {
-        console.log(`The transaction hash is ${txHash}`)
-    }).on('error', function (e) {
-        console.error('on transactionHash error', e.message)
-    })
+    await trx.send({ from: bridge_address, gas: Math.floor(gas * 1.05) })
+        .on('transactionHash', function (txHash) {
+            console.log(`The transaction hash is ${txHash}`)
+        }).on('error', function (e) {
+            console.error('on transactionHash error', e.message)
+        })
+
+    console.log('-------------------------------------------------')
 }
 
+// read all necessary environment variables along with contract information
 async function init(){
     let origin_contract_json, destination_contract_json
     let origin_contract_address, destination_contract_address
@@ -72,11 +76,15 @@ async function init(){
 
     bridge_address = web3_origin.eth.accounts.privateKeyToAccount(private_key).address
 
+    console.log('----------- NETWORK AND CONTRACT INFO -----------')
     console.log('Bridge address :>> ', bridge_address)
-    console.log('oriNetworkId :>> ', await web3_origin.eth.net.getId())
-    console.log('destNetworkId :>> ', await web3_destination.eth.net.getId())
+    console.log('Origin network endpoint :>> ', process.env.ORIGIN_ENDPOINT_WS)
+    console.log('Origin network ID :>> ', await web3_origin.eth.net.getId())
+    console.log('Destination network endpoint :>> ', process.env.DESTINATION_ENDPOINT_WS)
+    console.log('Destination network ID :>> ', await web3_destination.eth.net.getId())
     console.log("Contract address in origin network :>> ", origin_contract_address)
     console.log("Contract address in destination network :>> ", destination_contract_address)
+    console.log('-------------------------------------------------')
 }
 
 const main = async () => {
@@ -89,7 +97,7 @@ const main = async () => {
         .on('error', (err) => {
             console.error('Error: ', err)
         })
-    console.log(`Waiting for deposit events in origin network`)
+    console.log(`Waiting for deposit events in origin network...`)
 
     destination_contract.events.Reclaim()
         .on('data', async (event) => {
@@ -99,7 +107,7 @@ const main = async () => {
             console.error('Error: ', err)
         })
 
-    console.log(`Waiting for reclaim events in destination network`)
+    console.log(`Waiting for reclaim events in destination network...`)
 }
 
 main()

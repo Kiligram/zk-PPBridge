@@ -69,15 +69,13 @@ function createDeposit({ nullifier, secret }) {
   deposit.preimage = Buffer.concat([deposit.nullifier.leInt2Buff(31), deposit.secret.leInt2Buff(31)])
   deposit.commitment = pedersenHash(deposit.preimage)
   deposit.nullifierHash = pedersenHash(deposit.nullifier.leInt2Buff(31))
-  // console.log(deposit.nullifier.leInt2Buff(31))
-  // console.log(deposit)
   return deposit
 }
 
 async function deposit() {
     const deposit = createDeposit({ nullifier: rbigint(31), secret: rbigint(31) })
 
-    await origin_contract.methods.deposit(toHex(deposit.commitment)).send({ value: ETH_AMOUNT, from: current_account, gas: 2e6 })
+    await origin_contract.methods.deposit(toHex(deposit.commitment)).send({ value: ETH_AMOUNT, from: current_account, gas: 1350000 })
       .on('transactionHash', function (txHash) {
         console.log(`The transaction hash is ${txHash}`)
       }).on('error', function (e) {
@@ -93,17 +91,10 @@ async function deposit() {
 async function withdrawToOrigin(address, amountETH){
   const amountWei = toWei(amountETH)
 
-  // const functionToEstimate = destination_contract.methods.withdrawToOrigin(address, amountWei)
+  const trx = destination_contract.methods.reclaim(address, amountWei)
+  const gas = await trx.estimateGas({from: current_account })
 
-  // functionToEstimate.estimateGas({ from: current_account })
-  //   .then((gasAmount) => {
-  //       console.log(`Estimated gas for myFunction: ${gasAmount}`);
-  //   })
-  //   .catch((error) => {
-  //       console.error(error);
-  //   });
-
-  await destination_contract.methods.reclaim(address, amountWei).send({from: current_account, gas: 1e5})
+  await trx.send({from: current_account, gas: Math.floor(gas * 1.05)})
     .on('transactionHash', function (txHash) {
       console.log(`The transaction hash is ${txHash}`)
     }).on('error', function (e) {
@@ -113,10 +104,14 @@ async function withdrawToOrigin(address, amountETH){
 
 async function withdrawToDestination({nullifier, secret, recipient}){
   const deposit = createDeposit({ nullifier: bigInt(nullifier), secret: bigInt(secret) })
-
   const { solProof, args } = await generateProof({ deposit, recipient })
-  console.log('Submitting withdraw transaction')
-  await destination_contract.methods.withdraw(solProof, ...args).send({ from: current_account, gas: 1e5 * 4 })
+  
+  console.log('Submitting withdraw transaction...')
+
+  const trx = destination_contract.methods.withdraw(solProof, ...args)
+  const gas = await trx.estimateGas({from: current_account })
+
+  await trx.send({ from: current_account, gas: Math.floor(gas * 1.05) })
     .on('transactionHash', function (txHash) {
       console.log(`The transaction hash is ${txHash}`)
     }).on('error', function (e) {
@@ -155,9 +150,6 @@ async function generateMerkleProof(deposit) {
 
   // Compute merkle proof of our commitment
   const { pathElements, pathIndices } = tree.path(leafIndex)
-  // console.log(pathElements)
-  // console.log(deposit.commitment)
-  // console.log(toHex(deposit.commitment))
   return { pathElements, pathIndices, root: tree.root() }
 }
 
@@ -190,40 +182,16 @@ async function generateProof({ deposit, recipient, relayerAddress = 0, fee = 0, 
     pathElements: pathElements,
     pathIndices: pathIndices,
   }
-
-  // console.log(input)
-
-  // console.log('Generating SNARK proof')
-  // console.time('Proof time')
-  // const { proof, publicSignals } = await snarkjsOriginal.groth16.fullProve(input, PATH_CIRCUIT_WASM, PATH_CIRCUIT_ZKEY);
-  // const solProof = websnarkUtils.toSolidityInput(proof).proof
-  // console.timeEnd('Proof time')
-  
-  // const vKey = JSON.parse(fs.readFileSync(PATH_VERIFICATION_KEY));
-  // var res = false
-  // do{
-  //   var pi_a = ''
-  //   for(var i = 0; i < 77; i++){
-  //     pi_a += String.fromCharCode(48 + Math.floor(Math.random() * 9))[0]
-  //   }
-  //   proof.pi_a[0] = pi_a
-  //   console.log(proof.pi_a[0])
-  //   res = await snarkjsOriginal.groth16.verify(vKey, publicSignals, proof);
-  //   if (res === true) {
-  //       console.log("Verification OK");
-  //   } else {
-  //       console.log("Invalid proof");
-  //   }
-  // } while(res === false)
-
   
   const vKey = JSON.parse(fs.readFileSync(PATH_VERIFICATION_KEY));
   console.log('Generating SNARK proof')
+  // generate valid zk-SNARK proof
   do {
     console.time('Proof time')
     var { proof, publicSignals } = await snarkjsOriginal.groth16.fullProve(input, PATH_CIRCUIT_WASM, PATH_CIRCUIT_ZKEY);
     console.timeEnd('Proof time')
-    // console.log(publicSignals)
+
+    // verify whether generated zk-SNARK proof is valid
     var result = await snarkjsOriginal.groth16.verify(vKey, publicSignals, proof);
     if (result === true) {
         console.log("Proof verification OK");
@@ -232,8 +200,10 @@ async function generateProof({ deposit, recipient, relayerAddress = 0, fee = 0, 
     }
   } while (result !== true)
 
+  // generated proof consists of several arrays, so let us convert it to a string
   const solProof = websnarkUtils.toSolidityInput(proof).proof
 
+  // prepare smart-contract-friendly arguments to be sent along with proof
   const args = [
     toHex(input.root),
     toHex(input.nullifierHash),
@@ -246,6 +216,7 @@ async function generateProof({ deposit, recipient, relayerAddress = 0, fee = 0, 
   return { solProof, args }
 }
 
+// function sets the account from which the transactions are sent
 async function setAccount(privateKey){
   const account = web3_origin.eth.accounts.privateKeyToAccount(privateKey)
     
@@ -253,9 +224,9 @@ async function setAccount(privateKey){
   web3_origin.eth.accounts.wallet.add(privateKey)
 
   current_account = account.address
-  // console.log(`Your public key is: ${current_account}`)
 }
 
+// read env variables, contract data, set account before the program can be used
 async function init(){
   let origin_contract_json, destination_contract_json
   let origin_contract_address, destination_contract_address
@@ -278,9 +249,6 @@ async function init(){
   destination_contract = new web3_destination.eth.Contract(destination_contract_json.abi, destination_contract_address)
 
   await setAccount(process.env.WALLET_PRIVATE_KEY)
-  // console.log("Contract address in origin network: ", origin_contract_address)
-  // console.log("Contract address in destination network: ", destination_contract_address)
-  // console.log("Before using commands, set the wallet by command setacc <PRIVATE_KEY>")
 }
 
 async function main(){
@@ -289,7 +257,7 @@ async function main(){
     .option('-t, --token', 'print balance of bridged assets in destination network')
     .option('-o, --origin', 'print balance of wallet in origin network')
     .option('-d, --destination', 'print balance of wallet in destination network')
-    .description('Print balance of wallet. Use option -o or -d to print balance of stated address in origin/destination network respectively. To print balance of bridged assets in destination network use option -t')
+    .description('Print balance of the wallet. Use option -o or -d to print balance of the stated address in the origin/destination network respectively. To print balance of bridged assets, use option -t')
     .action(async (address, options) => {
       await init()
       if(options.token){
@@ -305,7 +273,7 @@ async function main(){
 
   program
     .command('deposit')
-    .description('Submit a deposit and print secret and nullifier. Env variable WALLET_PRIVATE_KEY must be set to the private key of wallet from which the deposit amount will be charged.')
+    .description('Submit a deposit and print secret and nullifier. Environment variable WALLET_PRIVATE_KEY must be set to the private key of the wallet from which the deposit amount will be charged')
     .action(async () => {
       await init()
       await deposit()
@@ -313,7 +281,7 @@ async function main(){
 
   program
     .command('withdraw <secret> <nullifier> <recipient>')
-    .description('Withdraw to a recipient token account in destination network using secret and nullifier. Env variable WALLET_PRIVATE_KEY must be set to pay gas only.')
+    .description('Withdraw the deposit to the recipient’s token account in the destination network using secret and nullifier. Env variable WALLET_PRIVATE_KEY must be set to the wallet from which the withdrawal transaction will be sent')
     .action(async (secret, nullifier, recipient) => {
       await init()
       await withdrawToDestination({nullifier, secret, recipient})
@@ -321,7 +289,7 @@ async function main(){
 
   program
     .command('reclaim <recipient> <amount>')
-    .description('Withdraw bridged assets back to the origin network. Env variable WALLET_PRIVATE_KEY must be set to the private key of the owner of tokens on destination network. Amount should be in ETH')
+    .description('Withdraw bridged assets back to the origin network. Env variable WALLET_PRIVATE_KEY must be set to the private key of the account that owns the bridged funds in the destination smart contract. Amount must be stated in ETH')
     .action(async (recipient, amount) => {
       await init()
       await withdrawToOrigin(recipient, amount)

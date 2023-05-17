@@ -17,6 +17,7 @@ contract OriginWrappedETH is MerkleTree, ReentrancyGuard {
 
     /**
         @dev The constructor
+        @param _bridge the address of bridge wallet
         @param _hasher the address of MiMC hash contract
         @param _denomination transfer amount for each deposit
         @param _merkleTreeHeight the height of deposits' Merkle Tree
@@ -40,8 +41,12 @@ contract OriginWrappedETH is MerkleTree, ReentrancyGuard {
         _;
     }
 
+    /**
+        @dev make a deposit
+        @param _commitment is made by hashing the concatenation of secreet and nullifier
+    */
     function deposit(bytes32 _commitment) external payable nonReentrant {
-        require(!commitments[_commitment], "The commitment has been submitted");
+        require(!commitments[_commitment], "The commitment has been already submitted");
         require(msg.value == denomination, "Please send `mixDenomination` ETH along with transaction");
         
         (uint32 insertedIndex, bytes32 newRoot) = _insert(_commitment);
@@ -50,7 +55,7 @@ contract OriginWrappedETH is MerkleTree, ReentrancyGuard {
         emit Deposit(_commitment, insertedIndex, newRoot, block.timestamp);
     }
 
-
+    /// @dev unlock funds by sending them to recipient. Can be called by bridge (relayer) only.
     function releaseFunds(address recepient, uint256 amount) external onlyBridge nonReentrant returns (bool) {
         (bool success, ) = recepient.call{ value: amount }("");
         return success;
