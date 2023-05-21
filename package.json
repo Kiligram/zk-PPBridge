@@ -16,9 +16,6 @@
   "dependencies": {
     "@openzeppelin/contracts": "3.4.1",
     "@truffle/hdwallet-provider": "^2.1.7",
-    "bn-chai": "^1.0.1",
-    "chai": "^4.3.7",
-    "chai-as-promised": "^7.1.1",
     "circomlib": "github:tornadocash/circomlib#c372f14d324d57339c88451834bf2824e73bbdbc",
     "commander": "^10.0.0",
     "dotenv": "^16.0.3",

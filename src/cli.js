@@ -72,10 +72,11 @@ function createDeposit({ nullifier, secret }) {
   return deposit
 }
 
+// function generates commitment and make a deposit
 async function deposit() {
     const deposit = createDeposit({ nullifier: rbigint(31), secret: rbigint(31) })
 
-    await origin_contract.methods.deposit(toHex(deposit.commitment)).send({ value: ETH_AMOUNT, from: current_account, gas: 1350000 })
+    await origin_contract.methods.deposit(toHex(deposit.commitment)).send({ value: ETH_AMOUNT, from: current_account, gas: 1400000 })
       .on('transactionHash', function (txHash) {
         console.log(`The transaction hash is ${txHash}`)
       }).on('error', function (e) {
@@ -88,7 +89,8 @@ async function deposit() {
     return deposit
 }
 
-async function withdrawToOrigin(address, amountETH){
+// function withdraws bridged assets back to the origin network
+async function reclaim(address, amountETH){
   const amountWei = toWei(amountETH)
 
   const trx = destination_contract.methods.reclaim(address, amountWei)
@@ -102,6 +104,7 @@ async function withdrawToOrigin(address, amountETH){
     })
 }
 
+// function withdraws the deposit to the destination network
 async function withdrawToDestination({nullifier, secret, recipient}){
   const deposit = createDeposit({ nullifier: bigInt(nullifier), secret: bigInt(secret) })
   const { solProof, args } = await generateProof({ deposit, recipient })
@@ -116,15 +119,14 @@ async function withdrawToDestination({nullifier, secret, recipient}){
       console.log(`The transaction hash is ${txHash}`)
     }).on('error', function (e) {
       console.error('on transactionHash error', e.message)
-    })
+    }) 
 }
 
 /**
- * Taken from https://github.com/tornadocash/tornado-core/blob/master/src/cli.js
- * Generate merkle tree for a deposit.
- * Download deposit events from the tornado, reconstructs merkle tree, finds our deposit leaf
- * in it and generates merkle proof
- * @param deposit Deposit object
+ * Function taken from https://github.com/tornadocash/tornado-core/blob/master/src/cli.js
+ * Downloads deposit events from the tornado, constructs merkle tree,
+ * generates merkle proof for provided deposit
+ * @param deposit deposit from which the submitted commitment was generated
  */
 async function generateMerkleProof(deposit) {
   // Get all deposit events from smart contract and assemble merkle tree from them
@@ -200,7 +202,7 @@ async function generateProof({ deposit, recipient, relayerAddress = 0, fee = 0, 
     }
   } while (result !== true)
 
-  // generated proof consists of several arrays, so let us convert it to a string
+  // generated proof consists of several arrays, so let us convert it to a single string
   const solProof = websnarkUtils.toSolidityInput(proof).proof
 
   // prepare smart-contract-friendly arguments to be sent along with proof
@@ -216,7 +218,22 @@ async function generateProof({ deposit, recipient, relayerAddress = 0, fee = 0, 
   return { solProof, args }
 }
 
-// function sets the account from which the transactions are sent
+// function sends wrapped tokens (bridged assets) to the recipient token address 
+async function transferTokens(address, amountETH){
+  const amountWei = toWei(amountETH)
+
+  const trx = destination_contract.methods.transfer(address, amountWei)
+  const gas = await trx.estimateGas({from: current_account })
+
+  await trx.send({from: current_account, gas: Math.floor(gas * 1.05)})
+    .on('transactionHash', function (txHash) {
+      console.log(`The transaction hash is ${txHash}`)
+    }).on('error', function (e) {
+      console.error('on transactionHash error', e.message)
+    })
+}
+
+// function sets the account from which the transactions will be sent
 async function setAccount(privateKey){
   const account = web3_origin.eth.accounts.privateKeyToAccount(privateKey)
     
@@ -226,7 +243,7 @@ async function setAccount(privateKey){
   current_account = account.address
 }
 
-// read env variables, contract data, set account before the program can be used
+// read env variables, read contract data, set account from which the transactions will be performed
 async function init(){
   let origin_contract_json, destination_contract_json
   let origin_contract_address, destination_contract_address
@@ -260,15 +277,17 @@ async function main(){
     .description('Print balance of the wallet. Use option -o or -d to print balance of the stated address in the origin/destination network respectively. To print balance of bridged assets, use option -t')
     .action(async (address, options) => {
       await init()
-      if(options.token){
-        await printDestinationERC20Balance(address)
-      }
-      else if(options.origin)
+      if(options.origin)
         await printOriginBalance(address)
       else if(options.destination)
         await printDestinationBalance(address)
-      else
-        console.log('Missing option :>> try command balance --help')
+      else if(options.token)
+        await printDestinationERC20Balance(address)
+      else {
+        await printOriginBalance(address)
+        await printDestinationBalance(address)
+        await printDestinationERC20Balance(address)
+      }
     })
 
   program
@@ -292,8 +311,16 @@ async function main(){
     .description('Withdraw bridged assets back to the origin network. Env variable WALLET_PRIVATE_KEY must be set to the private key of the account that owns the bridged funds in the destination smart contract. Amount must be stated in ETH')
     .action(async (recipient, amount) => {
       await init()
-      await withdrawToOrigin(recipient, amount)
+      await reclaim(recipient, amount)
     })
+
+  program
+    .command('transfer <recipient> <amount>')
+    .description('Send wrapped tokens to the specified recipient address. Env variable WALLET_PRIVATE_KEY must be set to the private key of the account that owns the bridged funds in the destination smart contract. Amount must be stated in ETH')
+    .action(async (recipient, amount) => {
+      await init()
+      await transferTokens(recipient, amount)
+    })  
 
   try {
     await program.parseAsync(process.argv)

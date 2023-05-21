@@ -9,6 +9,7 @@ let ORIGIN_NETWORK_ID, DESTINATION_NETWORK_ID
 let web3_origin, web3_destination, origin_contract, destination_contract
 let bridge_address
 
+// function that is executed when Deposit event is emitted
 const handleOriginDepositEvent = async (event) => {
     const root = event.returnValues.root
 
@@ -28,6 +29,7 @@ const handleOriginDepositEvent = async (event) => {
     console.log('-------------------------------------------------')
 }
 
+// function that is executed when Reclaim event is emitted
 const handleDestinationReclaimEvent = async (event) => {
     const recipient = event.returnValues.recipient
     const amount = event.returnValues.amount
@@ -49,7 +51,7 @@ const handleDestinationReclaimEvent = async (event) => {
     console.log('-------------------------------------------------')
 }
 
-// read all necessary environment variables along with contract information
+// read all necessary environment variables along with contract data
 async function init(){
     let origin_contract_json, destination_contract_json
     let origin_contract_address, destination_contract_address
@@ -97,6 +99,7 @@ const main = async () => {
         .on('error', (err) => {
             console.error('Error: ', err)
         })
+        
     console.log(`Waiting for deposit events in origin network...`)
 
     destination_contract.events.Reclaim()

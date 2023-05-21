@@ -1,5 +1,6 @@
 require('dotenv').config()
 const HDWalletProvider = require('@truffle/hdwallet-provider')
+
 /**
  * Use this file to configure your truffle project. It's seeded with some
  * common settings for different networks and features like migrations,
@@ -142,6 +143,7 @@ module.exports = {
       //  evmVersion: "byzantium"
       // }
     },
+    // build Hasher smart contract using script
     external: {
       command: 'node ./scripts/compileHasher.js',
       targets: [
