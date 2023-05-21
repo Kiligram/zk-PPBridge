@@ -113,7 +113,9 @@ contract DestinationWrappedETH is ERC20, ReentrancyGuard {
         emit Withdrawal(_recipient, _nullifierHash, _relayer, _fee);
     }
 
-
+    /**
+        @dev Auxiliary function that performs the withdrawal
+    */
     function _processWithdraw(
         address payable _recipient,
         address payable _relayer,

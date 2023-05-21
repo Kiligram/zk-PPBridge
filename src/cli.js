@@ -62,7 +62,7 @@ async function printDestinationERC20Balance(address) {
 
 /**
  * Taken from https://github.com/tornadocash/tornado-core/blob/master/src/cli.js
- * Create deposit object from secret and nullifier
+ * Create deposit from secret and nullifier
  */
 function createDeposit({ nullifier, secret }) {
   const deposit = { nullifier, secret }
@@ -72,7 +72,7 @@ function createDeposit({ nullifier, secret }) {
   return deposit
 }
 
-// function generates commitment and make a deposit
+// function generates commitment and makes a deposit
 async function deposit() {
     const deposit = createDeposit({ nullifier: rbigint(31), secret: rbigint(31) })
 

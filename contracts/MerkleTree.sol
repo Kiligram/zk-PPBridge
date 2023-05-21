@@ -25,7 +25,7 @@ contract MerkleTree {
     uint256 public constant ZERO_VALUE = 21663839004416932945382355908790599225266501822907911457504978515578255421292; // = keccak256("tornado") % FIELD_SIZE
     IHasher public immutable hasher;
 
-	// the height of the Merkle tree. The highest the tree is the more gas is consumed, but the more deposits can be handled in total
+	// the height of the Merkle tree. The highest the tree is, the more gas is consumed, but the more deposits can be handled in total
     uint32 public levels;
 
     // the following variables are made public for easier testing and debugging and
@@ -54,7 +54,7 @@ contract MerkleTree {
     }
 
     /**
-      @dev Hash 2 tree leaves, returns MiMC(_left, _right)
+      @dev Hash 2 tree nodes, returns MiMC(_left, _right)
     */
     function hashLeftRight(
 		IHasher _hasher,

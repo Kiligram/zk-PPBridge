@@ -9,7 +9,10 @@ let ORIGIN_NETWORK_ID, DESTINATION_NETWORK_ID
 let web3_origin, web3_destination, origin_contract, destination_contract
 let bridge_address
 
-// function that is executed when Deposit event is emitted
+/**
+ * Function is executed only when Deposit event is emitted
+ * Function resends the root contained in Deposit event to the destination smart contract
+ */
 const handleOriginDepositEvent = async (event) => {
     const root = event.returnValues.root
 
@@ -29,7 +32,10 @@ const handleOriginDepositEvent = async (event) => {
     console.log('-------------------------------------------------')
 }
 
-// function that is executed when Reclaim event is emitted
+/**
+ * Function is executed when Reclaim event is emitted
+ * Function unlocks the funds in the origin smart contract by sending them to the recipient address
+ */
 const handleDestinationReclaimEvent = async (event) => {
     const recipient = event.returnValues.recipient
     const amount = event.returnValues.amount
@@ -99,7 +105,7 @@ const main = async () => {
         .on('error', (err) => {
             console.error('Error: ', err)
         })
-        
+
     console.log(`Waiting for deposit events in origin network...`)
 
     destination_contract.events.Reclaim()
